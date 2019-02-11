@@ -96,6 +96,6 @@ void loop() {
   char szTime[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   strTime.substring(0, 9).toCharArray(szTime, 9);
   PrintString(szTime);
-  // Serial.println(szTime);
+  Serial.println(szTime);
   delay(1000);
 }
