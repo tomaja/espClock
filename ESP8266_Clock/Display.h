@@ -1,7 +1,9 @@
+#include <string>
+#include <algorithm>
 
-#define BUFFER_DATA     0
-#define BUFFER_CLK      5
-#define BUFFER_LATCH    2
+#define BUFFER_DATA     0 // D3
+#define BUFFER_CLK      5 // D1
+#define BUFFER_LATCH    2 // D4
 
 const char positionMap[] = { 4, 3, 2, 5, 1, 6, 0, 7, 8 };
 
@@ -13,7 +15,7 @@ const char mapChars[] =
 //           1   2
 //             3
 //           4   5
-//             6
+//             6    7
     // Digits
     0b01110111, // '0'
     0b00100100, // '1'
@@ -27,36 +29,35 @@ const char mapChars[] =
     0b01101111, // '9'
 
     // Letters
-    0b01110111, // 'a'
-    0b01111100, // 'b'
-    0b01011000, // 'c'
-    0b01011110, // 'd'
-    0b01111011, // 'e'
-    0b01110001, // 'f'
-    0b01101111, // 'g'
-    0b01110100, // 'h'
-    0b00000100, // 'i'
-    0b00011110, // 'j'
-    0b01110000, // 'k'
-    0b00111000, // 'l'
-    0b01010101, // 'm' (n with line above)
-    0b01010100, // 'n'
-    0b01011100, // 'o'
-    0b01110011, // 'p'
-    0b11100111, // 'q'
-    0b01010000, // 'r'
-    0b01101101, // 's' (same as 5)
-    0b01111000, // 't'
-    0b00111110, // 'u'
-    0b00011100, // 'v'
-    0b00011101, // 'w' (v with line above)
-    0b01110110, // 'x'
-    0b01101110, // 'y'
-    0b01011011, // 'z' (same as 2)
+    0b00111111, // 'A'
+    0b01111111, // 'B'
+    0b01010011, // 'C'
+    0b01111100, // 'D'
+    0b01011011, // 'E'
+    0b00011011, // 'F'
+    0b01110011, // 'G'
+    0b00111110, // 'H'
+    0b00100100, // 'I'
+    0b01110100, // 'J'
+    0b01110000, // 'K'
+    0b00111000, // 'L'
+    0b01010101, // 'M' (n with line above)
+    0b00111000, // 'N'
+    0b01011100, // 'O'
+    0b01110011, // 'P'
+    0b11100111, // 'Q'
+    0b01010000, // 'R'
+    0b01101101, // 'S' (same as 5)
+    0b01011010, // 'T'
+    0b00111110, // 'U'
+    0b00011100, // 'V'
+    0b00011101, // 'W' (v with line above)
+    0b01110110, // 'X'
+    0b01101110, // 'Y'
+    0b01011011, // 'Z' (same as 2)
 
     0b00000000, // ' '
-
-    0b01000000, // '-' (same as :)
+    0b00001000, // '-' (same as :)
 };
 
 const unsigned char DISPLAY_CHARS = 9;
@@ -74,52 +75,52 @@ void SendBit(const unsigned char cOn)
     digitalWrite(BUFFER_DATA, LOW);
   }
 
-  delayMicroseconds(2);
+  //delayMicroseconds(2);
   digitalWrite(BUFFER_CLK, HIGH);
-  delayMicroseconds(2);
+  //delayMicroseconds(2);
   digitalWrite(BUFFER_CLK, LOW);
 
-  delayMicroseconds(2);
+  //delayMicroseconds(2);
   digitalWrite(BUFFER_DATA, LOW);
 }
 
 void Latch()
 {
   digitalWrite(BUFFER_LATCH, HIGH);
-  delayMicroseconds(2);
+  //delayMicroseconds(2);
   digitalWrite(BUFFER_LATCH, LOW);
 }
 
 void PrintChar(unsigned char ucChar, unsigned char ucPosition, unsigned char ucDot)
 {
-    unsigned char i = 0;
+  ESP.wdtFeed();
+  unsigned char i = 0;
 
   if (ucChar >= '0' && ucChar <= '9')
   {
     ucChar -= '0';
   }
-  else if(ucChar >= 'a' && ucChar <= 'z')
+  else if(ucChar >= 'A' && ucChar <= 'Z')
   {
-    ucChar -= 'a' + 10;
+    ucChar -= 'A' + 10;
   }
-    else if(ucChar == ' ')
-    {
-        ucChar = 36;
-    }
-    else if(ucChar == '-')
-    {
-        ucChar = 37;
-    }
-    else if(ucChar == ':')
-    {
-        ucChar = 37;
-    }
+  else if(ucChar == ' ')
+  {
+      ucChar = 36;
+  }
+  else if(ucChar == '-')
+  {
+      ucChar = 37;
+  }
+  else if(ucChar == ':')
+  {
+      ucChar = 37;
+  }
 
-
-    for(i = 0; i < 3; i++) // 3 padding bits
-    {
-        SendBit(0);
-    }
+  for(i = 0; i < 3; i++) // 3 padding bits
+  {
+      SendBit(0);
+  }
 
   for(i = 0; i < 9; i++)
   {
@@ -133,21 +134,95 @@ void PrintChar(unsigned char ucChar, unsigned char ucPosition, unsigned char ucD
     }
   }
 
-    for(i = 0; i < 7; i++)
-    {
-        SendBit(mapChars[ucChar] & 1 << i);
-    }
-    SendBit(ucDot);
+  if(ucChar == '.')
+  {
+    ucChar = 36;
+    ucDot = 1;
+  }
+  
+  for(i = 0; i < 7; i++)
+  {
+      SendBit(mapChars[ucChar] & 1 << i);
+  }
+  SendBit(ucDot);
 
   Latch();
 }
 
-void PrintString(char* szText)
+void PrintString(const char* szText)
 {
   unsigned char i = 0;
-  while(i < 8)
+  while(i < 8 && i < strlen(szText))
   {
     PrintChar(szText[i], i, 0);
     i++;
+  }
+  while(i < 8)
+  {
+    PrintChar(' ', i, 0);
+    i++;
+  }
+}
+
+void PrintString(String strText)
+{
+  unsigned char i = 0;
+  while(i < 8 && i < strText.length())
+  {
+    PrintChar(strText[i], i, 0);
+    i++;
+  }
+}
+
+void PrintString(const std::string& strText)
+{
+  unsigned char i = 0;
+  std::string strSafeText = strText.substr(0, std::min(size_t(8), strText.length()));
+  int offset = 4 - strSafeText.length() / 2;
+  while(i < offset)
+  {
+    PrintChar(' ', i, 0);
+    i++;
+  }
+  i == offset;
+  while(i < 8 && i < offset + strSafeText.length())
+  {
+    PrintChar(strText[i], i, 0);
+    i++;
+  }
+  while(i < 8)
+  {
+    PrintChar(' ', i, 0);
+    i++;
+  }
+}
+
+void PrintForMS(const char* szText, long long ms)
+{
+  int loops = ms * 2;
+  for(int i = 0; i < loops; i++)
+  {
+    PrintString(szText);
+    delayMicroseconds(5);
+  }
+}
+
+void PrintForMS(String strText, long long ms)
+{
+  int loops = ms * 2;
+  for(int i = 0; i < loops; i++)
+  {
+    PrintString(strText);
+    delayMicroseconds(5);
+  }
+}
+
+void PrintForMS(const std::string& strText, long long ms)
+{
+  int loops = ms * 2;
+  for(int i = 0; i < loops; i++)
+  {
+    PrintString(strText);
+    delayMicroseconds(5);
   }
 }
