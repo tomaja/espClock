@@ -124,7 +124,7 @@ void loop()
   timeClient.update();
   server.handleClient();
 
-  if(false)
+  if(true)
   {
     if(mode == Mode::IP)
     {
